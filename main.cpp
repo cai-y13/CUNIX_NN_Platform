@@ -10,16 +10,20 @@
 using namespace std;
 
 float* LoadData(string path) {
+    //Uncompleted
     cv::Mat img = cv::imread(path, -1);
-//    int row = img.rows;
-//    int col = img.cols;
-//    float* image_array = new float[row * col];
-//    for( int i = 0; i < row; i++ ) {
-//        for( int j = 0; j < col; j++ ) {
-//            image_array[i * col + j] = static_cast<float>(img.at<uchar>(i,j));
-//        }
-//    }
-//    return image_array;
+    int row = img.rows;
+    int col = img.cols;
+    int channel = img.channels();
+    float* image_array = new float[row * col * channel];
+    for( int c = 0; c < channel; c++ ) {
+        for( int i = 0; i < row; i++ ) {
+            for( int j = 0; j < col; j++ ) {
+                image_array[i * col + j] = static_cast<float>(img.at<uchar>(i,j));
+            }
+        }
+    }
+    return image_array;
 }
 
 float* LoadConv(const int kernel_size, const int in_channel, const int out_channel, char* path) {
