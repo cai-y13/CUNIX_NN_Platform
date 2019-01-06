@@ -2,11 +2,24 @@
 #include <cmath>
 #include <fstream>
 #include <vector>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <string>
 
 using namespace std;
 
-float* LoadDate(char* path) {
-    
+float* LoadData(string path) {
+    cv::Mat img = cv::imread(path, -1);
+//    int row = img.rows;
+//    int col = img.cols;
+//    float* image_array = new float[row * col];
+//    for( int i = 0; i < row; i++ ) {
+//        for( int j = 0; j < col; j++ ) {
+//            image_array[i * col + j] = static_cast<float>(img.at<uchar>(i,j));
+//        }
+//    }
+//    return image_array;
 }
 
 float* LoadConv(const int kernel_size, const int in_channel, const int out_channel, char* path) {
@@ -31,7 +44,7 @@ void Convolution(const int kernel_size, const int pad, const int stride, const i
             for( int wo = 0; wo < out_width; wo++ ) {
                 outputs[co * out_width * out_height + ho * out_width + wo] = 0;
                 for( int ci = 0; ci < in_channel; ci++ ) {
-                    int start_index = ci * height * width + ho * stride * width + wo * stride;
+                    int start_index = ci * height * width + (ho * stride - pad) * width + (wo - pad) * stride;
                     for( int kh = 0; kh < kernel_size; kh++) {
                         for( int kw = 0; kw < kernel_size; kw++) {
                             int h_index = ho * stride + kh;
@@ -115,5 +128,7 @@ void Softmax(const float* inputs, const int dim, float* outputs) {
 
 int main() {
     //Uncompleted
+    string image_path = "0.png";
+    float* data = LoadData(image_path); 
     
 }
