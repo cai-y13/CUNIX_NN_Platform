@@ -12,16 +12,13 @@ using namespace std;
 float* LoadData(cv::Mat img) {
     int row = img.rows;
     int col = img.cols;
-    int channel = img.channels();
-    float* image_array = new float[row * col * channel];
+    float* image_array = new float[row * col];
     for( int i = 0; i < row; i++ ) {
         for( int j = 0; j < col; j++ ) {
-            for( int c = 0; c < channel; c++ ) {
-                image_array[i * col + j] = static_cast<float>(img.at<cv::Vec3b>(i,j)[c]);
+                image_array[i * col + j] = static_cast<float>(img.at<uchar>(i,j));
                 image_array[i * col + j] /= 255;
                 image_array[i * col + j] -= 0.1307;
                 image_array[i * col + j] /= 0.3081;
-            }
         }
     }
     return image_array;
@@ -59,7 +56,7 @@ float* Convolution(const int kernel_size, const int pad, const int stride, const
                                 outputs[co * out_width * out_height + ho * out_width + wo] += 0;   
                             } else {
                                 outputs[co * out_width * out_height + ho * out_width + wo] += inputs[start_index + kh * width + kw]
-                                        * weights[weights_offset + ci * kernel_size * kernel_size + kh * kernel_size * kw]; 
+                                        * weights[weights_offset + ci * kernel_size * kernel_size + kh * kernel_size + kw]; 
                             }
                         }
                     }
@@ -102,8 +99,8 @@ float* ReLU(const float* inputs, const int dim) {
 }
 
 float* MaxPooling(const float* inputs, const int kernel_size, const int stride, const int channel, const int height, const int width) {
-    int out_height = static_cast<int>(ceil(static_cast<float>(height - kernel_size) / stride)); 
-    int out_width = static_cast<int>(ceil(static_cast<float>(width - kernel_size) / stride)); 
+    int out_height = static_cast<int>(ceil(static_cast<float>(height - kernel_size) / stride)) + 1; 
+    int out_width = static_cast<int>(ceil(static_cast<float>(width - kernel_size) / stride)) + 1;
     float* outputs = new float[out_height * out_width * channel];
     for( int c = 0; c < channel; c++ ) {
         int offset = c * height * width;
@@ -115,13 +112,13 @@ float* MaxPooling(const float* inputs, const int kernel_size, const int stride, 
                 for( int kh = 0; kh < kernel_size; kh++ ) {
                     for( int kw = 0; kw < kernel_size; kw++ ) {
                         if( inputs[offset + (h_in + kh) * width + w_in + kw] > max) {
-                            max = inputs[(h_in + kh) * width + w_in +kw];
+                            max = inputs[offset + (h_in + kh) * width + w_in +kw];
                         }
                     }
                 }
                 outputs[c * out_height * out_width + h * out_width + w] = max;
             }
-        } 
+        }
     }
     return outputs;
 }
@@ -143,24 +140,26 @@ int main() {
     ifstream listfile(image_list);
     char conv1_file[] = "conv1.weight.txt";
     char conv2_file[] = "conv2.weight.txt";
-    char fc1_file[] = "fc1.weights.txt";
-    char fc2_file[] = "fc2.weights.txt";
+    char fc1_file[] = "fc1.weight.txt";
+    char fc2_file[] = "fc2.weight.txt";
     float* conv1 = LoadConv(5, 1, 10, conv1_file);
     float* conv2 = LoadConv(5, 10, 20, conv2_file);
     float* fc1 = LoadFC(320, 50, fc1_file);
     float* fc2 = LoadFC(50, 10, fc2_file);   
     string infile;
     int label;
+    int correct = 0;
+    int total = 0;
     while( listfile >> infile >> label ) {
         cv::Mat img = cv::imread(infile, -1);
         float* input = LoadData(img);
-        float* output_conv1 = Convolution(5, 1, 1, 28, 28, 1, 10, conv1, input);
+        float* output_conv1 = Convolution(5, 0, 1, 28, 28, 1, 10, conv1, input);
         delete[] input;
         float* output_pool1 = MaxPooling(output_conv1, 2, 2, 10, 24, 24);
         delete[] output_conv1;
         float* output_relu1 = ReLU(output_pool1, 12*12*10);
         delete[] output_pool1;
-        float* output_conv2 = Convolution(5, 1, 1, 12, 12, 10, 20, conv2, output_relu1);
+        float* output_conv2 = Convolution(5, 0, 1, 12, 12, 10, 20, conv2, output_relu1);
         delete[] output_relu1;
         float* output_pool2 = MaxPooling(output_conv2, 2, 2, 20, 8, 8);
         delete[] output_conv2;
@@ -174,12 +173,15 @@ int main() {
         delete[] output_relu3;
         float* output = Softmax(output_fc2, 10);
         delete[] output_fc2;
-        for( int i = 0; i < 10; i++ ) {
-            cout << output[i] << endl;
-        }
-        int pred = *max_element(output, output+10) - *output;
+        auto pos = max_element(output, output+10);
+        int pred = distance(output, pos);
         delete[] output;
         cout << infile << " label: " << label << " prediction: " << pred << endl;
+        if( label == pred ) {
+            correct++;
+        }
+        total++;
     }
+    cout << "The eval precision is: " << static_cast<float>(correct) / static_cast<float>(total) << endl;
     return 0;
 }
