@@ -6,6 +6,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <string>
+#include <ctime>
 
 using namespace std;
 
@@ -136,6 +137,7 @@ float* Softmax(const float* inputs, const int dim) {
 }
 
 int main() {
+    clock_t start = clock();
     char image_list[] = "list.txt";
     ifstream listfile(image_list);
     char conv1_file[] = "conv1.weight.txt";
@@ -183,5 +185,9 @@ int main() {
         total++;
     }
     cout << "The eval precision is: " << static_cast<float>(correct) / static_cast<float>(total) << endl;
+    clock_t end = clock();
+    float total_time=(float)(end-start)/CLOCKS_PER_SEC;
+    cout << "Total time: " << total_time << endl;
+    cout << "The frame rate is: " << 10000 / total_time << endl;
     return 0;
 }
